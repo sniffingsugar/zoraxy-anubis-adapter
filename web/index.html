@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="zoraxy.csrf.Token" content="{{.csrfToken}}">
+  <title>Anubis Bot Protection</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--theme_bg); color: var(--text_color); padding: 2rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text_color_secondary); font-size: 0.875rem; margin-bottom: 2rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .card { background: var(--theme_bg_primary); border-radius: 8px; padding: 1.25rem 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    body.darkTheme .card { box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+    .card-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text_color_secondary); margin-bottom: 0.5rem; }
+    .card-value { font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
+    .card-value.small { font-size: 1rem; margin-top: .25rem; }
+    .badge { display: inline-block; padding: .25em .75em; border-radius: 9999px; font-size: .8rem; font-weight: 600; }
+    .badge-ok { background: #c6f6d5; color: #276749; }
+    .badge-err { background: #fed7d7; color: #9b2c2c; }
+    .badge-loading { background: #e2e8f0; color: #4a5568; }
+    body.darkTheme .badge-ok { background: #1a3a2a; color: #6ee7a0; }
+    body.darkTheme .badge-err { background: #3a1a1a; color: #fc8181; }
+    body.darkTheme .badge-loading { background: #2a2a2e; color: #a0aec0; }
+    button { background: #3182ce; color: white; border: none; border-radius: 6px; padding: .6rem 1.25rem; cursor: pointer; font-size: .95rem; transition: background .15s; }
+    button:hover:not(:disabled) { background: #2b6cb0; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    body.darkTheme button { background: #4a7bb8; }
+    body.darkTheme button:hover:not(:disabled) { background: #3a6aa8; }
+    #msg { margin-top: .75rem; font-size: .875rem; color: var(--text_color_secondary); min-height: 1.25em; }
+    .section { background: var(--theme_bg_primary); border-radius: 8px; padding: 1.25rem 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-top: 1.5rem; }
+    body.darkTheme .section { box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+    .section h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text_color_secondary); margin-bottom: 1rem; }
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: .8rem; color: var(--text_color_secondary); margin-bottom: .35rem; }
+    .field input, .field select { width: 100%; border: 1px solid var(--divider_color); border-radius: 6px; padding: .55rem .75rem; font-size: .95rem; outline: none; background: var(--input_color); color: var(--text_color); }
+    .field input:focus, .field select:focus { border-color: var(--theme_highlight); }
+    .field select { cursor: pointer; }
+    .hint { font-size: .8rem; color: var(--text_color_secondary); margin-top: .5rem; line-height: 1.5; }
+    .hint code { background: var(--theme_bg); padding: .15em .4em; border-radius: 4px; font-size: .85em; }
+    .route-list { list-style: none; }
+    .route-item { display: flex; align-items: center; justify-content: space-between; padding: .6rem 0; border-bottom: 1px solid var(--divider_color); }
+    .route-item:last-child { border-bottom: none; }
+    .route-domain { font-family: monospace; font-size: .95rem; flex: 1; }
+    .route-status { font-size: .8rem; margin-right: 1rem; min-width: 70px; text-align: center; }
+    .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--divider_color); border-radius: 24px; transition: .2s; }
+    .toggle-slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .2s; }
+    .toggle input:checked + .toggle-slider { background: #38a169; }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
+    .toggle input:disabled + .toggle-slider { opacity: .5; cursor: not-allowed; }
+    .empty-note { color: var(--text_color_secondary); font-size: .875rem; }
+    .guide { font-size: .85rem; line-height: 1.7; color: var(--text_color_secondary); }
+    .guide ol { padding-left: 1.5rem; margin: .5rem 0; }
+    .guide li { margin-bottom: .35rem; }
+    .guide code { background: var(--theme_bg); padding: .15em .4em; border-radius: 4px; font-size: .85em; }
+    .guide strong { color: var(--text_color); }
+    .refresh-btn { background: none; color: var(--text_color_secondary); border: 1px solid var(--divider_color); padding: .35rem .8rem; font-size: .8rem; border-radius: 4px; }
+    .refresh-btn:hover:not(:disabled) { background: var(--theme_bg_primary); }
+  </style>
+</head>
+<body>
+  <link rel="stylesheet" href="/darktheme.css">
+  <script>
+    function applyZoraxyTheme() {
+      document.body.classList.toggle('darkTheme', localStorage.getItem('theme') === 'dark');
+    }
+    applyZoraxyTheme();
+    window.addEventListener('storage', applyZoraxyTheme);
+  </script>
+
+  <h1>Anubis Bot Protection</h1>
+  <p class="subtitle">Forward-Auth adapter for AI crawler defense via proof-of-work challenges</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-label">Anubis Status</div>
+      <div id="status-val"><span class="badge badge-loading">…</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Global Forward-Auth</div>
+      <div id="global-val"><span class="badge badge-loading">…</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Anubis URL</div>
+      <div class="card-value small" id="anubis-url">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Forward-Auth Port</div>
+      <div class="card-value" id="listen-port">—</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Global Setup</h2>
+    <p class="hint" style="margin-bottom:1rem">
+      Installs the Forward-Auth endpoint in Zoraxy pointing to this plugin.
+      Do this <strong>once</strong> before enabling routes.
+    </p>
+    <button onclick="installGlobal()" id="btn-install">Install Global Config</button>
+    <div id="global-msg"></div>
+  </div>
+
+  <div class="section">
+    <h2>Configuration</h2>
+    <div class="field">
+      <label for="anubisUrl">Anubis Server URL</label>
+      <input type="url" id="anubisUrl" placeholder="http://anubis:8923" />
+    </div>
+    <div class="field">
+      <label for="failMode">When Anubis is unreachable</label>
+      <select id="failMode">
+        <option value="open">Allow traffic (fail-open)</option>
+        <option value="closed">Block traffic (fail-closed)</option>
+      </select>
+    </div>
+    <button onclick="saveConfig()">Save</button>
+    <div id="msg"></div>
+  </div>
+
+  <div class="section">
+    <h2>Protected Routes</h2>
+    <p class="hint" style="margin-bottom:1rem">
+      Toggle which proxy rules get Anubis protection.
+      <button class="refresh-btn" onclick="loadRoutes()" style="float:right;margin-top:-.2rem">↻ Refresh</button>
+    </p>
+    <ul class="route-list" id="route-list">
+      <li class="empty-note">Click refresh to load.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Manual Setup & Removal</h2>
+    <div class="guide">
+      <p><strong>To remove</strong> the global Forward-Auth config, go to Zoraxy → <strong>Settings</strong> → <strong>Auth Provider</strong> → clear the Forward Auth address field and save.</p>
+      <p style="margin-top:.75rem"><strong>To set up manually</strong> in Zoraxy:</p>
+      <ol>
+        <li><strong>Forward-Auth:</strong> Settings → Auth Provider → Forward Auth → Address: <code>http://127.0.0.1:9698/check</code>, enable X-Original Headers, Ignored Paths: <code>/.within.website/</code></li>
+        <li><strong>Per Route:</strong> HTTP Proxy → rule → Authentication → Forward Auth</li>
+        <li><strong>Vdir per Route:</strong> HTTP Proxy → rule → Virtual Dirs → Add: <code>/.within.website/</code> → <code>127.0.0.1:9698</code></li>
+        <li><strong>Disable Route:</strong> HTTP Proxy → rule → Authentication → None, then delete the <code>/.within.website/</code> vdir</li>
+      </ol>
+      <p style="margin-top:.75rem"><strong>Anubis (subrequest mode):</strong> <code>docker run -e TARGET=" " -p 8923:8923 ghcr.io/techarohq/anubis:latest</code></p>
+      <p style="margin-top:.5rem"><strong>botPolicies.yaml:</strong> <code>status_codes: { DENY: 403 }</code></p>
+    </div>
+  </div>
+
+  <script>
+    var API = 'api/';
+
+    function csrf() {
+      var m = document.querySelector('meta[name="zoraxy.csrf.Token"]');
+      return m ? m.getAttribute('content') : '';
+    }
+    function h(ct) {
+      var o = { 'X-CSRF-Token': csrf() };
+      if (ct) o['Content-Type'] = ct;
+      return o;
+    }
+
+    function loadStatus() {
+      fetch(API + 'status', { headers: h() })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          document.getElementById('status-val').innerHTML =
+            d.anubis_reachable ? '<span class="badge badge-ok">Reachable</span>' : '<span class="badge badge-err">Unreachable</span>';
+          document.getElementById('anubis-url').textContent = d.anubis_url || '(not set)';
+          document.getElementById('listen-port').textContent = d.check_port || '—';
+        })
+        .catch(function() {
+          document.getElementById('status-val').innerHTML = '<span class="badge badge-err">Error</span>';
+        });
+
+      fetch(API + 'config', { headers: h() })
+        .then(function(r) { return r.json(); })
+        .then(function(c) {
+          document.getElementById('anubisUrl').value = c.anubis_url || '';
+          document.getElementById('failMode').value = c.fail_mode || 'open';
+        });
+
+      fetch(API + 'global', { headers: h() })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          var el = document.getElementById('global-val');
+          el.innerHTML = d.installed
+            ? '<span class="badge badge-ok">Installed</span>'
+            : '<span class="badge badge-loading">Not installed</span>';
+        });
+    }
+
+    function loadRoutes() {
+      var list = document.getElementById('route-list');
+      list.innerHTML = '<li class="empty-note">Loading…</li>';
+      fetch(API + 'routes', { headers: h() })
+        .then(function(r) { return r.json(); })
+        .then(function(routes) {
+          if (routes && routes.error) { list.innerHTML = ''; var e = document.createElement('li'); e.className = 'empty-note'; e.textContent = routes.error; list.appendChild(e); return; }
+          if (!routes || !routes.length) { list.innerHTML = '<li class="empty-note">No routes found.</li>'; return; }
+          list.innerHTML = '';
+          routes.forEach(function(rt) {
+            var li = document.createElement('li');
+            li.className = 'route-item';
+            var dn = document.createElement('span');
+            dn.className = 'route-domain';
+            dn.textContent = rt.domain;
+            li.appendChild(dn);
+            var st = document.createElement('span');
+            st.className = 'route-status';
+            var lbl = document.createElement('label');
+            lbl.className = 'toggle';
+            var inp = document.createElement('input');
+            inp.type = 'checkbox'; inp.checked = rt.protected;
+            inp.onchange = function() { toggle(rt.domain, inp, st); };
+            var sl = document.createElement('span');
+            sl.className = 'toggle-slider';
+            lbl.appendChild(inp); lbl.appendChild(sl);
+            st.innerHTML = rt.protected ? '<span class="badge badge-ok">ON</span>' : '<span class="badge badge-loading">OFF</span>';
+            li.appendChild(st); li.appendChild(lbl);
+            list.appendChild(li);
+          });
+        });
+    }
+
+    function toggle(domain, inp, st) {
+      var on = inp.checked;
+      inp.disabled = true;
+      fetch(API + 'routes', { method: 'POST', headers: h('application/json'), body: JSON.stringify({domain: domain, enable: on}) })
+        .then(function(r) { if (!r.ok) throw new Error(r.statusText); st.innerHTML = on ? '<span class="badge badge-ok">ON</span>' : '<span class="badge badge-loading">OFF</span>'; })
+        .catch(function(e) { inp.checked = !on; alert(e.message); })
+        .finally(function() { inp.disabled = false; });
+    }
+
+    function installGlobal() {
+      var m = document.getElementById('global-msg');
+      document.getElementById('btn-install').disabled = true;
+      m.textContent = 'Installing…';
+      fetch(API + 'global', { method: 'POST', headers: h('application/json') })
+        .then(function(r) { if (!r.ok) throw new Error(r.statusText); m.textContent = 'Done.'; document.getElementById('global-val').innerHTML = '<span class="badge badge-ok">Installed</span>'; })
+        .catch(function(e) { m.textContent = 'Error: ' + e.message; })
+        .finally(function() { document.getElementById('btn-install').disabled = false; setTimeout(function(){m.textContent='';}, 3000); });
+    }
+
+    function saveConfig() {
+      var m = document.getElementById('msg');
+      fetch(API + 'config', { method: 'POST', headers: h('application/json'), body: JSON.stringify({
+        anubis_url: document.getElementById('anubisUrl').value.trim(),
+        fail_mode: document.getElementById('failMode').value
+      })})
+        .then(function(r) { if (!r.ok) throw new Error(r.statusText); m.textContent = 'Saved.'; loadStatus(); })
+        .catch(function(e) { m.textContent = 'Error: ' + e.message; })
+        .finally(function() { setTimeout(function(){m.textContent='';}, 3000); });
+    }
+
+    loadStatus();
+    loadRoutes();
+  </script>
+</body>
+</html>

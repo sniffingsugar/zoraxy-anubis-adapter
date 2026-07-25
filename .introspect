@@ -1,0 +1,24 @@
+{
+  "id": "com.sniffingsugar.zoraxy-anubis-adapter",
+  "name": "Anubis Bot Protection",
+  "author": "sniffingsugar",
+  "description": "Forward-Auth adapter for Anubis AI crawler defense.",
+  "url": "https://github.com/sniffingsugar/zoraxy-anubis-adapter",
+  "type": 1,
+  "version_major": 1,
+  "version_minor": 0,
+  "version_patch": 0,
+  "ui_path": "/ui",
+  "permitted_api_endpoints": [
+    {
+      "method": "GET",
+      "endpoint": "/api/proxy/list",
+      "reason": "List proxy rules"
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/proxy/vdir/list",
+      "reason": "List vdirs"
+    }
+  ]
+}

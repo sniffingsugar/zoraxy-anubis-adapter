@@ -1,0 +1,13 @@
+services:
+  anubis:
+    image: ghcr.io/techarohq/anubis:latest
+    environment:
+      - TARGET= 
+      - BIND=0.0.0.0
+      # Zoraxy forward-auth doesn't send client IP — disable JWT IP binding
+      - JWT_RESTRICTION_HEADER=
+    ports:
+      - "8923:8923"
+    volumes:
+      - ./botPolicies.yaml:/data/botPolicies.yaml:ro
+    restart: unless-stopped
