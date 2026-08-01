@@ -23,7 +23,7 @@ var pluginSpec = &zp.IntroSpect{
 	Description:  "Forward-Auth adapter for Anubis AI crawler defense.",
 	URL:          "https://github.com/sniffingsugar/zoraxy-anubis-adapter",
 	Type:         zp.PluginType_Utilities,
-	VersionMajor: 1, VersionMinor: 0, VersionPatch: 0,
+	VersionMajor: 1, VersionMinor: 0, VersionPatch: 1,
 	UIPath: "/ui",
 	PermittedAPIEndpoints: []zp.PermittedAPIEndpoint{
 		{Method: "GET", Endpoint: "/api/proxy/list", Reason: "List proxy rules"},
@@ -33,6 +33,17 @@ var pluginSpec = &zp.IntroSpect{
 
 var zPort int
 var apiKey string
+
+// workingDir returns the plugin's storage directory.
+func workingDir() string {
+	if wd, err := os.Getwd(); err == nil {
+		return wd
+	}
+	if exe, err := os.Executable(); err == nil {
+		return filepath.Dir(exe)
+	}
+	return filepath.Dir(os.Args[0])
+}
 
 func main() {
 	config, err := zp.ServeAndRecvSpec(pluginSpec)
@@ -49,10 +60,8 @@ func main() {
 		zPort = 8000
 	}
 
-	pluginDir := filepath.Dir(os.Args[0])
-	if exe, err := os.Executable(); err == nil {
-		pluginDir = filepath.Dir(exe)
-	}
+	pluginDir := workingDir()
+	log.Printf("[anubis-adapter] data dir: %s", pluginDir)
 
 	// write icon.png next to the binary so zoraxy plugin manager shows it
 	if icon, err := webFS.ReadFile("icon.png"); err == nil {
